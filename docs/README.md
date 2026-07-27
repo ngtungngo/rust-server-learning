@@ -10,6 +10,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 3. [Structs und Methoden](03-structs-and-methods.md)
 4. [Result und Tests](04-result-and-testing.md)
 5. [Server-Konfiguration](05-server-configuration.md)
+6. [Bind-Adresse](06-bind-address.md)
 
 ## Arbeitsweise
 

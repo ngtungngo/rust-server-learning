@@ -9,6 +9,13 @@ fn creates_a_server_config_from_valid_values() {
 }
 
 #[test]
+fn formats_a_bind_address() {
+    let config = ServerConfig::new("localhost", "8080").unwrap();
+
+    assert_eq!(config.bind_address(), "localhost:8080");
+}
+
+#[test]
 fn rejects_an_empty_host() {
     let result = ServerConfig::new("   ", "8080");
 

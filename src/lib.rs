@@ -36,4 +36,8 @@ impl ServerConfig {
     pub fn port(&self) -> u16 {
         self.port
     }
+
+    pub fn bind_address(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
 }
