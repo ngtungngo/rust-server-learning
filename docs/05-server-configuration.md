@@ -9,8 +9,12 @@ entweder eine Konfiguration oder eine Fehlermeldung.
 
 ```rust
 match ServerConfig::new("localhost", "8080") {
-    Ok(config) => println!("{}:{}", config.host(), config.port()),
-    Err(message) => println!("Configuration error: {message}"),
+    Ok(config) => {
+        println!("{}:{}", config.host(), config.port());
+    }
+    Err(message) => {
+        println!("Configuration error: {message}");
+    }
 }
 ```
 

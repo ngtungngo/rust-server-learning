@@ -11,8 +11,12 @@ Ungültige Konfiguration ausdrücklich behandeln und automatisch testen.
 
 ```rust
 match parse_port("8080") {
-    Ok(port) => println!("Server will use port {port}"),
-    Err(message) => println!("Configuration error: {message}"),
+    Ok(port) => {
+        println!("Server will use port {port}");
+    }
+    Err(message) => {
+        println!("Configuration error: {message}");
+    }
 }
 ```
 
