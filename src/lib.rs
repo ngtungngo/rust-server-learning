@@ -9,3 +9,32 @@ pub fn parse_port(input: &str) -> Result<u16, String> {
 
     Ok(port)
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ServerConfig {
+    host: String,
+    port: u16,
+}
+
+impl ServerConfig {
+    pub fn new(host: &str, port_input: &str) -> Result<Self, String> {
+        let host = host.trim();
+
+        if host.is_empty() {
+            return Err(String::from("Host must not be empty"));
+        }
+
+        Ok(Self {
+            host: host.to_owned(),
+            port: parse_port(port_input)?,
+        })
+    }
+
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
+    }
+}

@@ -1,8 +1,8 @@
-use rust_server_learning::parse_port;
+use rust_server_learning::ServerConfig;
 
 fn main() {
-    match parse_port("8080") {
-        Ok(port) => println!("Server will use port {port}"),
+    match ServerConfig::new("localhost", "8080") {
+        Ok(config) => println!("Server will listen on {}:{}", config.host(), config.port()),
         Err(message) => println!("Configuration error: {message}"),
     }
 }
