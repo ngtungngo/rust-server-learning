@@ -10,16 +10,14 @@ fn creates_a_server_config_from_valid_values() {
 
 #[test]
 fn rejects_an_empty_host() {
-    assert_eq!(
-        ServerConfig::new("   ", "8080"),
-        Err(String::from("Host must not be empty"))
-    );
+    let result = ServerConfig::new("   ", "8080");
+
+    assert!(matches!(result, Err(message) if message == "Host must not be empty"));
 }
 
 #[test]
 fn rejects_an_invalid_port() {
-    assert_eq!(
-        ServerConfig::new("localhost", "abc"),
-        Err(String::from("'abc' is not a valid port number"))
-    );
+    let result = ServerConfig::new("localhost", "abc");
+
+    assert!(matches!(result, Err(message) if message == "'abc' is not a valid port number"));
 }

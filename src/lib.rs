@@ -10,7 +10,6 @@ pub fn parse_port(input: &str) -> Result<u16, String> {
     Ok(port)
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct ServerConfig {
     host: String,
     port: u16,
