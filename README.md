@@ -95,3 +95,28 @@ das Limit der vorigen.
 
 30. Config aus Env/Datei, Docker, Integrationstests gegen echte DB
     (testcontainers), Observability. (Wird bei Ankunft verfeinert.)
+
+## Weiterführende Ideen (jenseits des Web-Backends)
+
+Wofür Rust noch benutzt wird — als Horizont für spätere Projekte. Fast alles
+baut auf denselben Grundlagen (Ownership, Traits, Fehler, async); der
+Domänenwechsel bedeutet meist neue Crates, keine neue Sprache. Manches
+(Embedded, Game-ECS) ist ein eigenes Universum mit größerem Sprung.
+
+- **CLI-Tools** — Rusts Paradedisziplin (`ripgrep`, `fd`, `bat`). Single-Binary,
+  keine Runtime. Crate: `clap`. Kleiner Sprung von hier.
+- **WebAssembly** — Rust → WASM im Browser, nahe an React-Erfahrung: schwere
+  Logik in Rust, eingebunden ins Frontend. Crates: `wasm-bindgen`, `wasm-pack`;
+  Frameworks `leptos`/`yew` (React-artig).
+- **Native Extensions** — Rust als schneller Kern für andere Sprachen: Python
+  (`pyo3`, z. B. `polars`), Node (`napi-rs`). Trifft das Performance-Interesse.
+- **Netzwerk / Infrastruktur** — Proxies, Load-Balancer, Suchengines
+  (`tantivy`), Log-Pipelines (`vector`). Direkt anschlussfähig ans Server-Wissen.
+- **Security-Tooling** — sichere Protokoll-/Format-Parser (Memory Safety
+  entschärft einen klassischen C-Angriffsvektor), Scanner, Krypto-Werkzeuge.
+- **Embedded / IoT** — Rust auf Mikrocontrollern ohne OS (`no_std`); Memory
+  Safety ohne GC. Steil, braucht Hardware und anderes Mindset.
+- **Game Dev / Simulation** — `bevy` (ECS-Engine); das Entity-Component-System
+  ist ein bewusst un-OOP Design-Pattern.
+- **Data / ML-Infrastruktur** — nicht Modelltraining (bleibt Python), aber die
+  schnelle Infrastruktur: `polars`, Tokenizer (`tokenizers`), Inferenz-Serving.
