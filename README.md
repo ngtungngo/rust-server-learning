@@ -14,9 +14,10 @@ RUST_LOG=debug cargo run  # mit ausführlichem Logging
 
 ## Stand
 
-Konfigurations- und Fehler-Logik, strukturiertes Logging und ein reiner
-HTTP-Handler (`Request → Response`, Routing) — noch ohne Netzwerk. Die
-TCP-Schale ist der nächste Schritt (siehe Roadmap).
+Ein laufender HTTP-Server über echtes TCP: `serve_one` liest einen Request,
+routet über den reinen Handler und schreibt die Response zurück (`curl`-testbar).
+Bedient noch genau eine Verbindung pro Lauf — der Accept-Loop ist der nächste
+Schritt (siehe Roadmap).
 
 ## Bearbeitete Lektionen
 
@@ -35,6 +36,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 11. Fehler-Boilerplate mit `thiserror`
 12. Strukturiertes Logging mit `tracing`
 13. Request/Response-Typen + reiner Handler (Routing, `/api/item/:id`, Builder)
+14. TCP-Schale (`serve_one`, Request-Parsing, HTTP-Serialisierung, `curl`-testbar)
 
 ## Zielbild
 
@@ -53,10 +55,6 @@ das Limit der vorigen.
 
 ### Phase A — HTTP-Server von Grund auf
 
-14. **TCP-Schale (I/O-Adapter).** `serve_one()` nimmt eine Verbindung an, liest
-    Bytes → `Request`, ruft `handle`, schreibt `Response`. Lese-/Schreibfehler
-    als `Result`, malformed → `400`. Integrationstest auf freiem Port (`:0`),
-    genau eine Verbindung, damit der Test sauber endet.
 15. **Accept-Loop + ein Thread pro Verbindung** (`Arc`, `Send`/`Sync`).
 16. **Graceful Shutdown (einfach, sync) + per-Verbindung-Logging** (`tracing`-
     Span pro Verbindung).

@@ -32,6 +32,17 @@ impl StatusCode {
             StatusCode::NotImplemented => 501,
         }
     }
+    pub fn reason(&self) -> &str {
+        match self {
+            StatusCode::OK => "OK",
+            StatusCode::NotFound => "Not Found",
+            StatusCode::MethodNotAllowed => "Method Not Allowed",
+            StatusCode::BadRequest => "Bad Request",
+            StatusCode::InternalServerError => "Internal Server Error",
+            StatusCode::UnsupportedMediaType => "Unsupported Media Type",
+            StatusCode::NotImplemented => "Not Implemented",
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -82,11 +93,44 @@ pub struct Response {
 
 impl Response {
     pub fn text(status: StatusCode, body: &str) -> Self {
-        Self { status_code: status, content_type: Some(ContentType::TextPlain), body: body.to_owned() }
+        Self {
+            status_code: status,
+            content_type: Some(ContentType::TextPlain),
+            body: body.to_owned(),
+        }
     }
 
     pub fn json(status: StatusCode, body: impl Into<String>) -> Self {
-        Self { status_code: status, content_type: Some(ContentType::ApplicationJson), body: body.into() }
+        Self {
+            status_code: status,
+            content_type: Some(ContentType::ApplicationJson),
+            body: body.into(),
+        }
     }
 }
 
+impl ContentType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            ContentType::TextPlain => "text/plain",
+            ContentType::ApplicationJson => "application/json",
+            ContentType::Html => "text/html",
+            ContentType::ApplicationOctetStream => "application/octet-stream",
+        }
+    }
+}
+
+impl std::str::FromStr for Method {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "GET" => Ok(Method::Get),
+            "POST" => Ok(Method::Post),
+            "PATCH" => Ok(Method::Patch),
+            "PUT" => Ok(Method::Put),
+            "DELETE" => Ok(Method::Delete),
+            _ => Err(()),
+        }
+    }
+
+}

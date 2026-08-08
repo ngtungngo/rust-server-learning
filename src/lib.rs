@@ -1,5 +1,6 @@
 use thiserror::Error;
 pub mod http;
+pub mod server;
 
 pub fn parse_port(input: &str) -> Result<u16, ConfigError> {
     let port: u16 = input.parse().map_err(|e| {
