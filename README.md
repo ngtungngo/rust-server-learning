@@ -14,8 +14,9 @@ RUST_LOG=debug cargo run  # mit ausführlichem Logging
 
 ## Stand
 
-Reine Konfigurations- und Fehler-Logik mit strukturiertem Logging. Noch kein
-Netzwerk-Server — der ist der nächste Schritt (siehe Roadmap).
+Konfigurations- und Fehler-Logik, strukturiertes Logging und ein reiner
+HTTP-Handler (`Request → Response`, Routing) — noch ohne Netzwerk. Die
+TCP-Schale ist der nächste Schritt (siehe Roadmap).
 
 ## Bearbeitete Lektionen
 
@@ -33,6 +34,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 10. Fehler-Ketten mit `source()`
 11. Fehler-Boilerplate mit `thiserror`
 12. Strukturiertes Logging mit `tracing`
+13. Request/Response-Typen + reiner Handler (Routing, `/api/item/:id`, Builder)
 
 ## Zielbild
 
@@ -51,9 +53,6 @@ das Limit der vorigen.
 
 ### Phase A — HTTP-Server von Grund auf
 
-13. **Request/Response-Typen + reiner Handler.** `struct Request`, `struct
-    Response`, `handle(&Request) -> Response` mit Routing (`GET /api/health` →
-    200, sonst 404). Kein Socket — voll unit-testbar. Statuscodes als Typen.
 14. **TCP-Schale (I/O-Adapter).** `serve_one()` nimmt eine Verbindung an, liest
     Bytes → `Request`, ruft `handle`, schreibt `Response`. Lese-/Schreibfehler
     als `Result`, malformed → `400`. Integrationstest auf freiem Port (`:0`),
