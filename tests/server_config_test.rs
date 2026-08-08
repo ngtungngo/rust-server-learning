@@ -1,4 +1,5 @@
 use rust_server_learning::{ConfigError, ServerConfig};
+use std::error::Error;
 
 #[test]
 fn creates_a_server_config_from_valid_values() {
@@ -26,7 +27,7 @@ fn rejects_an_empty_host() {
 fn rejects_an_invalid_port() {
     let result = ServerConfig::new("localhost", "abc");
 
-    assert_eq!(result, Err(ConfigError::InvalidPort("abc".to_owned())));
+    assert!(matches!(result, Err(ConfigError::InvalidPort { value, .. }) if value == "abc"));
 }
 
 #[test]
@@ -34,3 +35,10 @@ fn config_error_is_a_standard_error() {
     let error: Box<dyn std::error::Error> = ServerConfig::new("   ", "8080").unwrap_err().into();
     assert_eq!(error.to_string(), "Host must not be empty");
 }
+
+#[test]
+fn invalid_port_reports_its_source() {
+    let error = ServerConfig::new("localhost", "abc").unwrap_err();
+    assert!(error.source().is_some());   // Ursachenkette existiert
+}
+

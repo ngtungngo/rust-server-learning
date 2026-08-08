@@ -1,7 +1,7 @@
 pub fn parse_port(input: &str) -> Result<u16, ConfigError> {
     let port: u16 = input
         .parse()
-        .map_err(|_| ConfigError::InvalidPort(input.to_owned()))?;
+        .map_err(|e| ConfigError::InvalidPort { value: input.to_owned(), source: e })?;
 
     if port == 0 {
         return Err(ConfigError::PortZero);
@@ -13,7 +13,7 @@ pub fn parse_port(input: &str) -> Result<u16, ConfigError> {
 #[derive(Debug, PartialEq)]
 pub enum ConfigError {
     EmptyHost,
-    InvalidPort(String),
+    InvalidPort{value: String, source: std::num::ParseIntError},
     PortZero
 }
 
@@ -54,10 +54,17 @@ impl std::fmt::Display for ConfigError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             ConfigError::EmptyHost => write!(f, "Host must not be empty"),
-            ConfigError::InvalidPort(value) => write!(f, "'{value}' is not a valid port number"),
+            ConfigError::InvalidPort{value, ..} => write!(f, "'{value}' is not a valid port number"),
             ConfigError::PortZero => write!(f, "Port 0 is not allowed"),
         }
     }
 }
 
-impl std::error::Error for ConfigError {}
+impl std::error::Error for ConfigError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ConfigError::InvalidPort { source, .. } => Some(source),
+            _ => None,
+        }
+    }
+}

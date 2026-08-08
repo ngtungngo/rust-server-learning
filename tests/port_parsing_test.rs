@@ -7,9 +7,10 @@ fn accepts_a_valid_port() {
 
 #[test]
 fn rejects_non_numeric_input() {
+    let source = "abc".parse::<u16>().unwrap_err();
     assert_eq!(
         parse_port("abc"),
-        Err(ConfigError::InvalidPort("abc".to_owned()))
+        Err(ConfigError::InvalidPort{value: "abc".to_owned(), source})
     );
 }
 
