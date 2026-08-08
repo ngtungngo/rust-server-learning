@@ -15,6 +15,33 @@ Ein persönliches Rust-Lernprojekt von Tung (Web-/Serverentwicklung), testgetrie
 in kleinen Lektionen. Zweck ist Lernen, nicht Produktion: kleinste sinnvolle
 Schritte schlagen Vollständigkeit.
 
+## Security & Performance als Querschnitt
+
+Tung lernt Rust auch wegen Security und Performance. Diese Themen sind **kein
+eigenes Kapitel am Ende**, sondern Querschnitt: In jeder Lektion einen kurzen,
+**konkreten** Kommentar an einer echten Design-Entscheidung, die gerade
+getroffen wird.
+
+- **Security**: an der Entscheidung verankern (z. B. Input-Validierung an der
+  Grenze → `400`; Größenlimits gegen DoS; Path Traversal; Timeouts). Ehrlich
+  bleiben: Memory Safety ≠ Application Security; dieses Lernprojekt ist **kein**
+  produktionssicherer/auditierter Server.
+- **Performance**: Trade-offs bewusst machen, **nicht** vorab mikro-optimieren
+  (`String` vs `&str`/Allokation; Thread-per-connection vs. async; blockierend
+  vs. non-blocking). Messen mit echtem Werkzeug (`criterion`), nicht per Bauch
+  oder naivem `Instant::now()`.
+- Kurz halten: ein bis zwei Sätze pro Thema und Lektion, immer an konkretem Code.
+
+## Dateigröße & Modularisierung (verbindlich)
+
+- **Keine Quelldatei über 250 Zeilen.** Wird eine Datei größer, ist das ein
+  Signal, sie in Module aufzuteilen — nicht später, sondern sofort.
+- Jederzeit refaktorieren erlaubt und erwünscht: sinnvoll modularisieren, sobald
+  eine Datei mehrere Verantwortlichkeiten trägt (z. B. `error`, `config`,
+  `server` in eigene Module/Dateien).
+- Beim Coachen: wenn eine Datei der Grenze nahekommt, den Refactor als eigenen
+  Schritt vorschlagen und begründen (welche Verantwortung wandert wohin, warum).
+
 ## Sprache (überschreibt geerbte Regeln)
 
 - **Lern-Docs (`docs/`) und Vault-Notizen: Deutsch.** Sie sind Tungs
