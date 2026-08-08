@@ -6,8 +6,8 @@ fn main() {
             println!("Server will listen on {}", config.bind_address());
             println!("Server will listen on {}:{}", config.host(), config.port());
         }
-        Err(message) => {
-            println!("Configuration error: {message}");
+        Err(error) => {
+            println!("Configuration error: {error}");
         }
     }
 }
