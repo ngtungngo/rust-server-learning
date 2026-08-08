@@ -1,15 +1,20 @@
 use thiserror::Error;
 
 pub fn parse_port(input: &str) -> Result<u16, ConfigError> {
-    let port: u16 = input.parse().map_err(|e| ConfigError::InvalidPort {
-        value: input.to_owned(),
-        source: e,
+    let port: u16 = input.parse().map_err(|e| {
+        tracing::warn!(input = %input, "invalid port number");
+        ConfigError::InvalidPort {
+            value: input.to_owned(),
+            source: e,
+        }
     })?;
 
     if port == 0 {
+        tracing::warn!(input, "port must not be zero");
         return Err(ConfigError::PortZero);
     }
 
+    tracing::debug!(port, "parsed port successfully");
     Ok(port)
 }
 
@@ -37,6 +42,7 @@ impl ServerConfig {
         let host = host.trim();
 
         if host.is_empty() {
+            tracing::warn!("rejected empty host");
             return Err(ConfigError::EmptyHost);
         }
 

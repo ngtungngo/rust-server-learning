@@ -5,3 +5,8 @@ edition = "2024"
 
 [dependencies]
 thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tracing-test = { version = "0.2", features = ["no-env-filter"] }

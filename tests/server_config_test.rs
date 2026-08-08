@@ -1,5 +1,6 @@
-use rust_server_learning::{ConfigError, ServerConfig};
+use rust_server_learning::{ConfigError, ServerConfig, parse_port};
 use std::error::Error;
+use tracing_test::traced_test;
 
 #[test]
 fn creates_a_server_config_from_valid_values() {
@@ -40,4 +41,25 @@ fn config_error_is_a_standard_error() {
 fn invalid_port_reports_its_source() {
     let error = ServerConfig::new("localhost", "abc").unwrap_err();
     assert!(error.source().is_some()); // Ursachenkette existiert
+}
+
+#[traced_test]
+#[test]
+fn logs_a_warning_on_empty_host() {
+    let _ = ServerConfig::new("   ", "8080");
+    assert!(logs_contain("empty host")); // Text den DU gleich in lib.rs loggst
+}
+
+#[traced_test]
+#[test]
+fn logs_a_warning_on_invalid_port() {
+    let _ = parse_port("abc");
+    assert!(logs_contain("invalid port"));
+}
+
+#[traced_test]
+#[test]
+fn logs_a_warning_on_zero_port() {
+    let _ = parse_port("0");
+    assert!(logs_contain("must not be zero"));
 }
