@@ -1,4 +1,4 @@
-use rust_server_learning::{parse_port, ConfigError};
+use rust_server_learning::{ConfigError, parse_port};
 
 #[test]
 fn accepts_a_valid_port() {
@@ -10,7 +10,10 @@ fn rejects_non_numeric_input() {
     let source = "abc".parse::<u16>().unwrap_err();
     assert_eq!(
         parse_port("abc"),
-        Err(ConfigError::InvalidPort{value: "abc".to_owned(), source})
+        Err(ConfigError::InvalidPort {
+            value: "abc".to_owned(),
+            source
+        })
     );
 }
 

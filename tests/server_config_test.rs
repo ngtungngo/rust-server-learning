@@ -39,6 +39,5 @@ fn config_error_is_a_standard_error() {
 #[test]
 fn invalid_port_reports_its_source() {
     let error = ServerConfig::new("localhost", "abc").unwrap_err();
-    assert!(error.source().is_some());   // Ursachenkette existiert
+    assert!(error.source().is_some()); // Ursachenkette existiert
 }
-

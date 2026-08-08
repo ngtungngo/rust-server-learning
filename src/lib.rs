@@ -1,7 +1,10 @@
+use thiserror::Error;
+
 pub fn parse_port(input: &str) -> Result<u16, ConfigError> {
-    let port: u16 = input
-        .parse()
-        .map_err(|e| ConfigError::InvalidPort { value: input.to_owned(), source: e })?;
+    let port: u16 = input.parse().map_err(|e| ConfigError::InvalidPort {
+        value: input.to_owned(),
+        source: e,
+    })?;
 
     if port == 0 {
         return Err(ConfigError::PortZero);
@@ -10,11 +13,17 @@ pub fn parse_port(input: &str) -> Result<u16, ConfigError> {
     Ok(port)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Error)]
 pub enum ConfigError {
+    #[error("Host must not be empty")]
     EmptyHost,
-    InvalidPort{value: String, source: std::num::ParseIntError},
-    PortZero
+    #[error("'{value}' is not a valid port number")]
+    InvalidPort {
+        value: String,
+        source: std::num::ParseIntError,
+    },
+    #[error("Port 0 is not allowed")]
+    PortZero,
 }
 
 #[derive(Debug, PartialEq)]
@@ -47,24 +56,5 @@ impl ServerConfig {
 
     pub fn bind_address(&self) -> String {
         format!("{}:{}", self.host, self.port)
-    }
-}
-
-impl std::fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ConfigError::EmptyHost => write!(f, "Host must not be empty"),
-            ConfigError::InvalidPort{value, ..} => write!(f, "'{value}' is not a valid port number"),
-            ConfigError::PortZero => write!(f, "Port 0 is not allowed"),
-        }
-    }
-}
-
-impl std::error::Error for ConfigError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            ConfigError::InvalidPort { source, .. } => Some(source),
-            _ => None,
-        }
     }
 }

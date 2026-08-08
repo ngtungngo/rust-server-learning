@@ -15,6 +15,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 8. [Fehlertyp als Enum](08-error-enum.md)
 9. [Das `std::error::Error`-Trait](09-std-error-trait.md)
 10. [Fehler-Ketten mit `source()`](10-error-source-chains.md)
+11. [Fehler-Boilerplate mit `thiserror`](11-thiserror.md)
 
 ## Arbeitsweise
 
