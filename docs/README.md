@@ -13,6 +13,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 6. [Bind-Adresse](06-bind-address.md)
 7. [`self` und `&self`](07-self-versus-borrowing.md)
 8. [Fehlertyp als Enum](08-error-enum.md)
+9. [Das `std::error::Error`-Trait](09-std-error-trait.md)
 
 ## Arbeitsweise
 

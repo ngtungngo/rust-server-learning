@@ -28,3 +28,9 @@ fn rejects_an_invalid_port() {
 
     assert_eq!(result, Err(ConfigError::InvalidPort("abc".to_owned())));
 }
+
+#[test]
+fn config_error_is_a_standard_error() {
+    let error: Box<dyn std::error::Error> = ServerConfig::new("   ", "8080").unwrap_err().into();
+    assert_eq!(error.to_string(), "Host must not be empty");
+}
