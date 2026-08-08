@@ -17,6 +17,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 10. [Fehler-Ketten mit `source()`](10-error-source-chains.md)
 11. [Fehler-Boilerplate mit `thiserror`](11-thiserror.md)
 12. [Logging mit `tracing`](12-logging-tracing.md)
+13. [Request/Response-Typen + reiner Handler](13-request-response-handler.md)
 
 ## Arbeitsweise
 
