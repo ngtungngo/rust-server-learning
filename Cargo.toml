@@ -7,6 +7,8 @@ edition = "2024"
 thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros", "time", "signal"] }
+
 
 [dev-dependencies]
 tracing-test = { version = "0.2", features = ["no-env-filter"] }

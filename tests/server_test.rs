@@ -1,63 +1,64 @@
 use rust_server_learning::server::{serve, serve_one};
 use std::io::{Read, Write};
-use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
-use std::sync::Arc;
+use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::thread;
 use std::time::Duration;
 
-#[test]
-fn serve_one_responds_with_http() {
-    // (1) Port :0 → das OS wählt einen freien Port. Kein Konflikt mit anderen Tests.
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let addr = listener.local_addr().unwrap(); // welchen Port haben wir bekommen?
+#[tokio::test]
+async fn serve_one_responds_with_http() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
 
-    // (2) Client in eigenem Thread — MUSS parallel laufen, sonst Deadlock:
-    //     serve_one blockiert bei accept(), der Client bei connect().
+    // Client im std::thread (echter OS-Thread, außerhalb der Runtime) — muss parallel
+    // laufen, sonst Deadlock: serve_one awaitet accept(), der Client connectet.
     let client = std::thread::spawn(move || {
         let mut stream = TcpStream::connect(addr).unwrap();
-        stream
-            .write_all(b"GET /api/health HTTP/1.1\r\n\r\n")
-            .unwrap();
-        // (3) Wir müssen die Schreibrichtung schließen, sonst wartet read_to_string ewig:
-        stream.shutdown(std::net::Shutdown::Write).unwrap();
+        stream.write_all(b"GET /api/health HTTP/1.1\r\n\r\n").unwrap();
+        stream.shutdown(Shutdown::Write).unwrap(); // EOF signalisieren
         let mut response = String::new();
         stream.read_to_string(&mut response).unwrap();
         response
     });
 
-    // (4) Server bedient GENAU EINE Verbindung, dann kehrt er zurück → Test terminiert.
-    serve_one(&listener).unwrap();
+    // serve_one bedient GENAU eine Verbindung im Testkörper (awaitet, blockiert nicht).
+    serve_one(&listener).await.unwrap();
 
     let response = client.join().unwrap();
-    assert!(response.contains("200")); // grob: Statuszeile enthält 200
+    assert!(response.contains("200"));
 }
 
-#[test]
-fn serve_one_returns_400_on_garbage() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+#[tokio::test]
+async fn serve_one_returns_400_on_garbage() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
+
     let client = std::thread::spawn(move || {
         let mut stream = TcpStream::connect(addr).unwrap();
         stream.write_all(b"not a valid request\r\n\r\n").unwrap(); // Müll
-        stream.shutdown(std::net::Shutdown::Write).unwrap();
+        stream.shutdown(Shutdown::Write).unwrap();
         let mut response = String::new();
         stream.read_to_string(&mut response).unwrap();
         response
     });
-    serve_one(&listener).unwrap();
+
+    serve_one(&listener).await.unwrap();
+
     let response = client.join().unwrap();
     assert!(response.contains("400"));
 }
 
-#[test]
-fn serve_one_serves_only_the_first_connection() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+// serve wird gespawnt UND der Client blockiert im Testkörper → multi_thread nötig,
+// sonst hält der blockierende Client den einzigen Runtime-Thread und der serve-Task
+// wird nie gepollt (Deadlock).
+#[tokio::test(flavor = "multi_thread")]
+async fn serve_one_serves_only_the_first_connection() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
-    // serve_one bedient GENAU eine Verbindung, dann kehrt die Closure zurück,
-    // der Thread endet und der listener wird gedroppt → Port ist zu.
-    thread::spawn(move || {
-        let _ = serve_one(&listener);
+    // serve_one (NICHT serve): bedient eine Verbindung, dann endet der Task und der
+    // listener wird gedroppt → Port ist zu.
+    tokio::spawn(async move {
+        let _ = serve_one(&listener).await;
     });
 
     // Request 1: wird bedient
@@ -79,34 +80,36 @@ fn get_health(addr: SocketAddr) -> std::io::Result<String> {
     Ok(buf)
 }
 
-#[test]
-fn serve_handles_multiple_connections() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+#[tokio::test(flavor = "multi_thread")]
+async fn serve_handles_multiple_connections() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
-    thread::spawn(move || {
-        let _ = serve(&listener, Arc::new(Default::default()));   // Loop lebt weiter, kein Rückkehren nach einer Verbindung
+    // serve läuft endlos (pending() wird nie fertig → kein Shutdown).
+    tokio::spawn(async move {
+        let _ = serve(&listener, std::future::pending::<()>()).await;
     });
 
     for i in 0..3 {
-        let response = get_health(addr)
-            .unwrap_or_else(|e| panic!("request {i} failed: {e}"));
+        let response =
+            get_health(addr).unwrap_or_else(|e| panic!("request {i} failed: {e}"));
         assert!(response.contains("200"), "request {i} should get 200, got: {response}");
     }
 }
 
-#[test]
-fn slow_connection_does_not_block_others() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+#[tokio::test(flavor = "multi_thread")]
+async fn slow_connection_does_not_block_others() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
-    thread::spawn(move || {
-        let _ = serve(&listener, Arc::new(Default::default()));
+    tokio::spawn(async move {
+        let _ = serve(&listener, std::future::pending::<()>()).await;
     });
 
-    // Client A: verbindet, schickt NICHTS → serve blockiert im read an A
+    // Client A: verbindet, schickt NICHTS. In async blockiert das die anderen NICHT,
+    // weil read().await den Thread freigibt (nicht wegen eigener Threads wie in L15).
     let _slow = TcpStream::connect(addr).unwrap();
-    thread::sleep(Duration::from_millis(100));   // sicherstellen, dass A akzeptiert & im read ist
+    thread::sleep(Duration::from_millis(100)); // A ist akzeptiert & wartet im read
 
     // Client B: vollständige Anfrage, MUSS trotzdem prompt bedient werden
     let mut fast = TcpStream::connect(addr).unwrap();

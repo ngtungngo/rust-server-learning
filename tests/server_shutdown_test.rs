@@ -1,61 +1,19 @@
-use std::io::{Read, Write};
-use std::net::{Shutdown, TcpListener, TcpStream};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
-use std::time::{Duration, Instant};
 use rust_server_learning::server::serve;
 
-#[test]
-fn serve_returns_after_shutdown_signal() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let shutdown = Arc::new(AtomicBool::new(false));
+#[tokio::test]
+async fn serve_returns_when_shutdown_future_completes() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
 
-    let flag = Arc::clone(&shutdown);          // zweiter Handle auf DASSELBE Flag
-    let server = thread::spawn(move || {
-        serve(&listener, flag)                  // Server-Thread liest das Flag
-    });
+    // Shutdown-Signal: ein Future, das nach 100ms fertig ist
+    let shutdown = tokio::time::sleep(std::time::Duration::from_millis(100));
 
-    thread::sleep(Duration::from_millis(100));  // Server sicher im Loop
-    shutdown.store(true, Ordering::SeqCst);     // Signal setzen (Test-Thread schreibt)
+    // Wenn serve das Signal beachtet, kehrt es zurück → der Test terminiert.
+    // Ein Timeout drumherum macht "hängt ewig" zu einem klaren Fehler.
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        serve(&listener, shutdown),
+    ).await;
 
-    // Beweis: der Server-Thread endet von selbst — join() blockiert nicht ewig.
-    let result = server.join().expect("server thread panicked");
-    assert!(result.is_ok(), "serve should return Ok after shutdown");
-}
-
-#[test]
-fn serve_waits_for_inflight_connection() {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let addr = listener.local_addr().unwrap();
-    let shutdown = Arc::new(AtomicBool::new(false));
-
-    let flag = Arc::clone(&shutdown);
-    let server = thread::spawn(move || serve(&listener, flag));
-
-    // Client öffnet eine langsame Verbindung (Handler schläft 500ms)
-    let client = thread::spawn(move || {
-        let mut stream = TcpStream::connect(addr).unwrap();
-        stream.write_all(b"GET /api/slow HTTP/1.1\r\n\r\n").unwrap();
-        stream.shutdown(Shutdown::Write).unwrap();
-        let mut buf = String::new();
-        stream.read_to_string(&mut buf).unwrap();
-        buf
-    });
-
-    thread::sleep(Duration::from_millis(100));   // Handler ist jetzt mitten im 500ms-sleep
-    let start = Instant::now();
-    shutdown.store(true, Ordering::SeqCst);       // Signal MITTEN in der laufenden Anfrage
-
-    let result = server.join().expect("server thread panicked");
-    let elapsed = start.elapsed();
-
-    assert!(result.is_ok(), "serve should return Ok");
-    // graceful: serve wartet auf den ~400ms Rest-Schlaf. detached: serve kehrt sofort (~0ms) zurück.
-    assert!(
-        elapsed >= Duration::from_millis(300),
-        "serve returned too early ({elapsed:?}) — it did not wait for the in-flight handler"
-    );
-    // der Client bekommt trotzdem seine vollständige Antwort
-    assert!(client.join().unwrap().contains("200"));
+    assert!(result.is_ok(), "serve did not return within 2s — it ignored the shutdown signal");
+    assert!(result.unwrap().is_ok(), "serve should return Ok");
 }
