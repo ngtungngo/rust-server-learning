@@ -1,6 +1,9 @@
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::str::FromStr;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 use crate::http::{handle, Request, Method, Response, StatusCode};
 
 
@@ -36,14 +39,23 @@ pub fn serve_one(listener: &TcpListener) -> std::io::Result<()> {
     handle_connection(stream)
 }
 
-pub fn serve(listener: &TcpListener) -> std::io::Result<()> {
-    for stream in listener.incoming() {
-        let stream = stream?;              // Result<TcpStream> → TcpStream (oder früh raus)
-        std::thread::spawn(move || {
-            if let Err(e) = handle_connection(stream) {
-                tracing::warn!(error = %e, "connection failed");
+pub fn serve(listener: &TcpListener, flag: Arc<AtomicBool>) -> std::io::Result<()> {
+    listener.set_nonblocking(true)?;
+
+    while !flag.load(Ordering::SeqCst) {          // Flag gesetzt? → Loop verlassen
+        match listener.accept() {
+            Ok((stream, _addr)) => {
+                std::thread::spawn(move || {
+                    if let Err(e) = handle_connection(stream) {
+                        tracing::warn!(error = %e, "connection failed");
+                    }
+                });
             }
-        });
+            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(Duration::from_millis(50));   // nichts da → kurz schlafen
+            }
+            Err(e) => return Err(e),                              // echter Fehler → raus
+        }
     }
     Ok(())
 }

@@ -1,6 +1,7 @@
 use rust_server_learning::server::{serve, serve_one};
 use std::io::{Read, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -84,7 +85,7 @@ fn serve_handles_multiple_connections() {
     let addr = listener.local_addr().unwrap();
 
     thread::spawn(move || {
-        let _ = serve(&listener);   // Loop lebt weiter, kein Rückkehren nach einer Verbindung
+        let _ = serve(&listener, Arc::new(Default::default()));   // Loop lebt weiter, kein Rückkehren nach einer Verbindung
     });
 
     for i in 0..3 {
@@ -100,7 +101,7 @@ fn slow_connection_does_not_block_others() {
     let addr = listener.local_addr().unwrap();
 
     thread::spawn(move || {
-        let _ = serve(&listener);
+        let _ = serve(&listener, Arc::new(Default::default()));
     });
 
     // Client A: verbindet, schickt NICHTS → serve blockiert im read an A
