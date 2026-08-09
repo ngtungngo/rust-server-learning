@@ -1,7 +1,8 @@
-use rust_server_learning::server::serve_one;
+use rust_server_learning::server::{serve, serve_one};
 use std::io::{Read, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::thread;
+use std::time::Duration;
 
 #[test]
 fn serve_one_responds_with_http() {
@@ -75,4 +76,45 @@ fn get_health(addr: SocketAddr) -> std::io::Result<String> {
     let mut buf = String::new();
     stream.read_to_string(&mut buf)?; // liest bis der Server schließt
     Ok(buf)
+}
+
+#[test]
+fn serve_handles_multiple_connections() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    thread::spawn(move || {
+        let _ = serve(&listener);   // Loop lebt weiter, kein Rückkehren nach einer Verbindung
+    });
+
+    for i in 0..3 {
+        let response = get_health(addr)
+            .unwrap_or_else(|e| panic!("request {i} failed: {e}"));
+        assert!(response.contains("200"), "request {i} should get 200, got: {response}");
+    }
+}
+
+#[test]
+fn slow_connection_does_not_block_others() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    thread::spawn(move || {
+        let _ = serve(&listener);
+    });
+
+    // Client A: verbindet, schickt NICHTS → serve blockiert im read an A
+    let _slow = TcpStream::connect(addr).unwrap();
+    thread::sleep(Duration::from_millis(100));   // sicherstellen, dass A akzeptiert & im read ist
+
+    // Client B: vollständige Anfrage, MUSS trotzdem prompt bedient werden
+    let mut fast = TcpStream::connect(addr).unwrap();
+    fast.write_all(b"GET /api/health HTTP/1.1\r\n\r\n").unwrap();
+    fast.shutdown(Shutdown::Write).unwrap();
+    fast.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+
+    let mut buf = String::new();
+    fast.read_to_string(&mut buf)
+        .expect("B should be served despite A hanging");
+    assert!(buf.contains("200"), "B should get 200, got: {buf}");
 }

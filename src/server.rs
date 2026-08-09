@@ -39,9 +39,11 @@ pub fn serve_one(listener: &TcpListener) -> std::io::Result<()> {
 pub fn serve(listener: &TcpListener) -> std::io::Result<()> {
     for stream in listener.incoming() {
         let stream = stream?;              // Result<TcpStream> → TcpStream (oder früh raus)
-        if let Err(e) = handle_connection(stream) {
-            tracing::warn!(error = %e, "connection failed");
-        }
+        std::thread::spawn(move || {
+            if let Err(e) = handle_connection(stream) {
+                tracing::warn!(error = %e, "connection failed");
+            }
+        });
     }
     Ok(())
 }
