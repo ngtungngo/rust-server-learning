@@ -1,5 +1,5 @@
 use std::io::{Read, Write};
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream};
 use std::str::FromStr;
 use crate::http::{handle, Request, Method, Response, StatusCode};
 
@@ -31,23 +31,38 @@ fn parse_request(raw: &str) -> Option<Request> {
 }
 
 pub fn serve_one(listener: &TcpListener) -> std::io::Result<()> {
-    let (mut stream, addr) = listener.accept()?;   // 1. blockiert bis Verbindung
+    let (stream, addr) = listener.accept()?;   // 1. blockiert bis Verbindung
     tracing::info!(%addr, "connection accepted");   // per-Verbindung-Logging (deine Liste)
+    handle_connection(stream)
+}
 
-    // 2. lesen
+pub fn serve(listener: &TcpListener) -> std::io::Result<()> {
+    for stream in listener.incoming() {
+        let stream = stream?;              // Result<TcpStream> → TcpStream (oder früh raus)
+        if let Err(e) = handle_connection(stream) {
+            tracing::warn!(error = %e, "connection failed");
+        }
+    }
+    Ok(())
+}
+
+fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
+    tracing::info!("start handle connection");   // per-Verbindung-Logging (deine Liste)
+    // 1. lesen
     let mut buffer = [0u8; 1024];
     let idx = stream.read(&mut buffer)?;
     let raw = String::from_utf8_lossy(&buffer[..idx]);
 
-    // 3. parsen → Request
+    // 2. parsen → Request
     let request = parse_request(&raw);
-
-    // 4. handle + zurückschreiben
+    tracing::info!("start handle request: {:?}", request);
+    // 3. handle + zurückschreiben
     let response = match request {
         Some(req) => handle(&req),
         None => Response::text(StatusCode::BadRequest, "bad request"),
     };
     let bytes = to_http(&response);
     stream.write_all(bytes.as_bytes())?;
+    tracing::info!("end handle request");
     Ok(())
 }
