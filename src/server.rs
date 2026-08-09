@@ -41,15 +41,16 @@ pub fn serve_one(listener: &TcpListener) -> std::io::Result<()> {
 
 pub fn serve(listener: &TcpListener, flag: Arc<AtomicBool>) -> std::io::Result<()> {
     listener.set_nonblocking(true)?;
-
+    let mut handles = Vec::new();
     while !flag.load(Ordering::SeqCst) {          // Flag gesetzt? → Loop verlassen
         match listener.accept() {
             Ok((stream, _addr)) => {
-                std::thread::spawn(move || {
+                let handle = std::thread::spawn(move || {
                     if let Err(e) = handle_connection(stream) {
                         tracing::warn!(error = %e, "connection failed");
                     }
                 });
+            handles.push(handle);
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 std::thread::sleep(Duration::from_millis(50));   // nichts da → kurz schlafen
@@ -57,11 +58,18 @@ pub fn serve(listener: &TcpListener, flag: Arc<AtomicBool>) -> std::io::Result<(
             Err(e) => return Err(e),                              // echter Fehler → raus
         }
     }
+    for handle in handles {
+        let _ = handle.join();                    // in-flight-Anfragen zu Ende bedienen
+    }
     Ok(())
 }
 
 fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
-    tracing::info!("start handle connection");   // per-Verbindung-Logging (deine Liste)
+    let peer = stream.peer_addr()?;
+    let span = tracing::info_span!("connection", %peer);
+    let _guard = span.enter();     // ab hier bis Funktionsende: alle Logs tragen peer
+
+    stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     // 1. lesen
     let mut buffer = [0u8; 1024];
     let idx = stream.read(&mut buffer)?;
@@ -69,14 +77,15 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
 
     // 2. parsen → Request
     let request = parse_request(&raw);
-    tracing::info!("start handle request: {:?}", request);
     // 3. handle + zurückschreiben
     let response = match request {
-        Some(req) => handle(&req),
+        Some(req) => {
+            tracing::info!(method = ?req.method, path = %req.path, "request");
+            handle(&req)
+        }
         None => Response::text(StatusCode::BadRequest, "bad request"),
     };
     let bytes = to_http(&response);
     stream.write_all(bytes.as_bytes())?;
-    tracing::info!("end handle request");
     Ok(())
 }

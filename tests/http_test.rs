@@ -1,3 +1,4 @@
+use std::time::{Duration, Instant};
 use rust_server_learning::http::{Method, Request, StatusCode, ContentType, handle};
 
 #[test]
@@ -39,4 +40,13 @@ fn post_item_with_content_type() {
     let request = Request::new(Method::Post, "/api/item".into())
         .with_content_type(ContentType::ApplicationJson);
     assert_eq!(handle(&request).status_code, StatusCode::NotImplemented);
+}
+
+#[test]
+fn slow_endpoint_returns_ok_after_delay() {
+    let request = Request::new(Method::Get, "/api/slow".to_owned());
+    let start = Instant::now();
+    let response = handle(&request);
+    assert!(start.elapsed() >= Duration::from_millis(400));
+    assert_eq!(response.status_code, StatusCode::OK);
 }

@@ -14,12 +14,13 @@ RUST_LOG=debug cargo run  # mit ausführlichem Logging
 
 ## Stand
 
-Ein laufender HTTP-Server über echtes TCP. `serve` akzeptiert in einer
-Endlosschleife (`incoming()`) und bedient jede Verbindung in einem eigenen
-Thread — mehrere Verbindungen gleichzeitig, eine hängende blockiert die anderen
-nicht. `serve_one` bleibt als terminierbarer Einmal-Bediener für Tests.
-Nächster Schritt: Graceful Shutdown und, motiviert durch die Thread-Grenze,
-async (siehe Roadmap).
+Ein laufender HTTP-Server über echtes TCP. `serve` akzeptiert (nonblocking,
+per `Arc<AtomicBool>` stoppbar) und bedient jede Verbindung in einem eigenen
+Thread. Graceful Shutdown: nach dem Signal keine neuen Verbindungen, laufende
+werden via `join()` zu Ende bedient; ein Read-Timeout schützt gegen hängende
+Verbindungen (Slow-Loris). per-Verbindung-Logging über einen `tracing`-Span.
+Noch nicht verdrahtet: ein Signal-Handler in `main` (Strg-C ist hart). Nächster
+Schritt: dieselbe Struktur async mit `tokio` (siehe Roadmap).
 
 ## Bearbeitete Lektionen
 
@@ -40,6 +41,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 13. Request/Response-Typen + reiner Handler (Routing, `/api/item/:id`, Builder)
 14. TCP-Schale (`serve_one`, Request-Parsing, HTTP-Serialisierung, `curl`-testbar)
 15. Accept-Loop + Thread pro Verbindung (`serve`, `incoming()`, `thread::spawn`, `move`/`Send`)
+16. Graceful Shutdown + per-Verbindung-Logging (`Arc<AtomicBool>`, `JoinHandle`/`join`, `set_read_timeout`, `tracing`-Span)
 
 ## Zielbild
 
@@ -58,8 +60,6 @@ das Limit der vorigen.
 
 ### Phase A — HTTP-Server von Grund auf
 
-16. **Graceful Shutdown (einfach, sync) + per-Verbindung-Logging** (`tracing`-
-    Span pro Verbindung).
 17. **Asynchron mit `tokio`** — dieselbe Struktur async; eleganter Graceful
     Shutdown via `tokio::select!`.
 18. **HTTP-APIs mit `axum`** — Router und Handler als echte Abstraktion.

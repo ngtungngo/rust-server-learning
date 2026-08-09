@@ -15,8 +15,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ServerConfig::new("localhost", "8080")?;
     let listener = TcpListener::bind(config.bind_address())?;   // Socket öffnen
     tracing::info!("Server will listen on {}", config.bind_address());
+    // No signal handler yet, so this flag is never set — Ctrl-C still hard-kills
+    // the process. Graceful shutdown is implemented and tested, not yet wired here.
     let shutdown = Arc::new(AtomicBool::new(false));
-    let flag = Arc::clone(&shutdown);          // zweit
-    serve(&listener, flag)?;
+    serve(&listener, shutdown)?;
     Ok(())
 }

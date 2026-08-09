@@ -22,6 +22,10 @@ pub fn handle(request: &Request) -> Response {
         (Method::Post, "/api/item") => handle_create_item(request),
         (Method::Get, "/api/health") => Response::text(StatusCode::OK, "ok"),
         (_, "/api/health")           => Response::text(StatusCode::MethodNotAllowed, "method not allowed"),
+        (Method::Get, "/api/slow") => {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            Response::text(StatusCode::OK, "slow ok")
+        }
         _                            => Response::text(StatusCode::NotFound, "path not found"),
     }
 }

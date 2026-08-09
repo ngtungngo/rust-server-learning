@@ -20,6 +20,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 13. [Request/Response-Typen + reiner Handler](13-request-response-handler.md)
 14. [TCP-Schale (`serve_one`)](14-tcp-server.md)
 15. [Accept-Loop + Thread pro Verbindung](15-accept-loop.md)
+16. [Graceful Shutdown + per-Verbindung-Logging](16-graceful-shutdown.md)
 
 ## Arbeitsweise
 
