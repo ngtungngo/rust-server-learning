@@ -1,3 +1,4 @@
+use std::time::Duration;
 use rust_server_learning::ServerConfig;
 use rust_server_learning::server::serve;
 
@@ -16,6 +17,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let shutdown = async {
         let _ = tokio::signal::ctrl_c().await; // warte auf Strg-C; Fehler ignorieren
     };
-    serve(&listener, shutdown).await?;
+    serve(&listener, shutdown, Duration::from_millis(100)).await?;
     Ok(())
 }

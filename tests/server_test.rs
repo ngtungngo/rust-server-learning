@@ -21,7 +21,7 @@ async fn serve_one_responds_with_http() {
     });
 
     // serve_one bedient GENAU eine Verbindung im Testkörper (awaitet, blockiert nicht).
-    serve_one(&listener).await.unwrap();
+    serve_one(&listener, Duration::from_millis(100)).await.unwrap();
 
     let response = client.join().unwrap();
     assert!(response.contains("200"));
@@ -41,7 +41,7 @@ async fn serve_one_returns_400_on_garbage() {
         response
     });
 
-    serve_one(&listener).await.unwrap();
+    serve_one(&listener, Duration::from_millis(100)).await.unwrap();
 
     let response = client.join().unwrap();
     assert!(response.contains("400"));
@@ -58,7 +58,7 @@ async fn serve_one_serves_only_the_first_connection() {
     // serve_one (NICHT serve): bedient eine Verbindung, dann endet der Task und der
     // listener wird gedroppt → Port ist zu.
     tokio::spawn(async move {
-        let _ = serve_one(&listener).await;
+        let _ = serve_one(&listener, Duration::from_millis(100)).await;
     });
 
     // Request 1: wird bedient
@@ -87,7 +87,7 @@ async fn serve_handles_multiple_connections() {
 
     // serve läuft endlos (pending() wird nie fertig → kein Shutdown).
     tokio::spawn(async move {
-        let _ = serve(&listener, std::future::pending::<()>()).await;
+        let _ = serve(&listener, std::future::pending::<()>(), Duration::from_millis(100)).await;
     });
 
     for i in 0..3 {
@@ -103,7 +103,7 @@ async fn slow_connection_does_not_block_others() {
     let addr = listener.local_addr().unwrap();
 
     tokio::spawn(async move {
-        let _ = serve(&listener, std::future::pending::<()>()).await;
+        let _ = serve(&listener, std::future::pending::<()>(), Duration::from_millis(100)).await;
     });
 
     // Client A: verbindet, schickt NICHTS. In async blockiert das die anderen NICHT,

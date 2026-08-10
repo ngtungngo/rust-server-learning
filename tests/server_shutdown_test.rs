@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream};
 use std::time::Duration;
 use tokio::time::Instant;
-use rust_server_learning::server::serve;
+use rust_server_learning::server::{serve, serve_one};
 
 #[tokio::test]
 async fn serve_returns_when_shutdown_future_completes() {
@@ -15,7 +15,7 @@ async fn serve_returns_when_shutdown_future_completes() {
     // Ein Timeout drumherum macht "hängt ewig" zu einem klaren Fehler.
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(2),
-        serve(&listener, shutdown),
+        serve(&listener, shutdown, Duration::from_millis(100)),
     ).await;
 
     assert!(result.is_ok(), "serve did not return within 2s — it ignored the shutdown signal");
@@ -41,7 +41,7 @@ async fn serve_waits_for_inflight_connection() {
     let shutdown = tokio::time::sleep(Duration::from_millis(100));
 
     let start = Instant::now();
-    serve(&listener, shutdown).await.unwrap();
+    serve(&listener, shutdown, Duration::from_millis(100)).await.unwrap();
     let elapsed = start.elapsed();
 
     assert!(
@@ -51,4 +51,26 @@ async fn serve_waits_for_inflight_connection() {
 
     let response = client.join().unwrap();
     assert!(response.contains("200"), "slow client should still get 200, got: {response}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn serve_one_drops_a_silent_connection_after_timeout() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    // Slow-Loris: verbindet (TCP-Handshake macht das OS), sendet NIE etwas,
+    // hält die Verbindung offen (nicht droppen → _silent bindet sie).
+    let _silent = std::net::TcpStream::connect(addr).unwrap();
+
+    // Ohne Read-Timeout hinge serve_one ewig im read().await → äußerer timeout(2s) feuert → rot.
+    let start = std::time::Instant::now();
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        serve_one(&listener, std::time::Duration::from_millis(100)),
+    ).await;
+    let elapsed = start.elapsed();
+
+    assert!(result.is_ok(), "serve_one hung — the connection timeout did not fire");
+    assert!(elapsed < std::time::Duration::from_secs(1),
+            "serve_one took {elapsed:?} — timeout fired too late");
 }
