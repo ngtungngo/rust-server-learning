@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use crate::http::{handle, Request, Method, Response, StatusCode};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::task::JoinSet;
 
 fn to_http(response: &Response) -> String {
     let content_type = response
@@ -36,22 +37,24 @@ pub async fn serve_one(listener: &tokio::net::TcpListener) -> std::io::Result<()
 
 pub async fn serve(listener: &tokio::net::TcpListener,
                    shutdown: impl std::future::Future<Output = ()>,) -> std::io::Result<()> {
-    tokio::pin!(shutdown);
+    tokio::pin!(shutdown); // ab hier: shutdown ist an DIESE Stack-Stelle gepinnt, unbeweglich
+    let mut tasks = JoinSet::new();
     loop {
         tokio::select! {
             result = listener.accept() => {
                 let (stream, _addr) = result?;
-                tokio::spawn(async move {
+                tasks.spawn(async move {
                     if let Err(e) = handle_connection(stream).await {
                         tracing::warn!(error = %e, "connection failed");
                     }
                 });
             }
-            _ = &mut shutdown => {
+            _ = &mut shutdown => { // dank Pin über viele Runden immer wieder pollbar
                 break;
             }
         }
     }
+    tasks.join_all().await;
     Ok(())
 }
 
