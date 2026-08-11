@@ -21,6 +21,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 14. [TCP-Schale (`serve_one`)](14-tcp-server.md)
 15. [Accept-Loop + Thread pro Verbindung](15-accept-loop.md)
 16. [Graceful Shutdown + per-Verbindung-Logging](16-graceful-shutdown.md)
+17. [Async mit `tokio`: select, JoinSet, Timeout, Registry](17-async-tokio.md)
 
 ## Arbeitsweise
 

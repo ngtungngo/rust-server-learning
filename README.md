@@ -14,13 +14,17 @@ RUST_LOG=debug cargo run  # mit ausführlichem Logging
 
 ## Stand
 
-Ein laufender HTTP-Server über echtes TCP. `serve` akzeptiert (nonblocking,
-per `Arc<AtomicBool>` stoppbar) und bedient jede Verbindung in einem eigenen
-Thread. Graceful Shutdown: nach dem Signal keine neuen Verbindungen, laufende
-werden via `join()` zu Ende bedient; ein Read-Timeout schützt gegen hängende
-Verbindungen (Slow-Loris). per-Verbindung-Logging über einen `tracing`-Span.
-Noch nicht verdrahtet: ein Signal-Handler in `main` (Strg-C ist hart). Nächster
-Schritt: dieselbe Struktur async mit `tokio` (siehe Roadmap).
+Ein laufender HTTP-Server über echtes TCP, jetzt **async mit `tokio`**. `serve`
+wartet per `tokio::select!` gleichzeitig auf neue Verbindungen und das
+Shutdown-Signal (kein Polling) und bedient jede Verbindung in einem eigenen
+Task. Graceful Shutdown: nach dem Signal keine neuen Verbindungen, laufende
+werden via `JoinSet::join_all` zu Ende bedient; ein per-Verbindung-Timeout
+(`tokio::time::timeout`) schützt gegen hängende Verbindungen (Slow-Loris). Eine
+Registry (`Arc<Mutex<HashMap<u64, AbortHandle>>>`) erlaubt, eine bestimmte
+Verbindung gezielt abzubrechen. Signal-Handler in `main` verdrahtet
+(`tokio::signal::ctrl_c`). per-Verbindung-Logging über einen `tracing`-Span.
+Ehrliche Grenze: `abort()` ist kooperativ (greift nur an `.await`-Punkten) — kein
+`kill -9` gegen blockierenden Code.
 
 ## Bearbeitete Lektionen
 
@@ -42,6 +46,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 14. TCP-Schale (`serve_one`, Request-Parsing, HTTP-Serialisierung, `curl`-testbar)
 15. Accept-Loop + Thread pro Verbindung (`serve`, `incoming()`, `thread::spawn`, `move`/`Send`)
 16. Graceful Shutdown + per-Verbindung-Logging (`Arc<AtomicBool>`, `JoinHandle`/`join`, `set_read_timeout`, `tracing`-Span)
+17. Async mit `tokio` (`select!`, `pin!`, `JoinSet`, `tokio::time::timeout`, Registry mit `AbortHandle`, `ctrl_c`)
 
 ## Zielbild
 
@@ -60,8 +65,6 @@ das Limit der vorigen.
 
 ### Phase A — HTTP-Server von Grund auf
 
-17. **Asynchron mit `tokio`** — dieselbe Struktur async; eleganter Graceful
-    Shutdown via `tokio::select!`.
 18. **HTTP-APIs mit `axum`** — Router und Handler als echte Abstraktion.
 
 ### Phase B — REST / CRUD
