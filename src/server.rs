@@ -1,8 +1,12 @@
+use std::collections::HashMap;
 use crate::http::{Method, Request, Response, StatusCode, handle};
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::task::JoinSet;
+use tokio::task::{AbortHandle, JoinSet};
+
+pub type Registry = Arc<Mutex<HashMap<u64, AbortHandle>>>;
 
 fn to_http(response: &Response) -> String {
     let content_type = response
@@ -47,14 +51,24 @@ pub async fn serve(
     listener: &tokio::net::TcpListener,
     shutdown: impl std::future::Future<Output = ()>,
     timeout: Duration,
+    registry: Registry,
 ) -> std::io::Result<()> {
     tokio::pin!(shutdown); // ab hier: shutdown ist an DIESE Stack-Stelle gepinnt, unbeweglich
     let mut tasks = JoinSet::new();
+    let mut next_id: u64 = 0;
     loop {
         tokio::select! {
             result = listener.accept() => {
                 let (stream, _addr) = result?;
-                tasks.spawn(handle_with_timeout(stream, timeout));
+                let id = next_id;
+                next_id += 1;
+
+                let reg = Arc::clone(&registry);
+                let handle = tasks.spawn(async move {
+                    handle_with_timeout(stream, timeout).await;
+                    reg.lock().unwrap().remove(&id);      // self-deregister beim Ende
+                });
+                registry.lock().unwrap().insert(id, handle);   // AbortHandle merken
             }
             _ = &mut shutdown => { // dank Pin über viele Runden immer wieder pollbar
                 break;
