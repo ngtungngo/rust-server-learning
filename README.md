@@ -26,12 +26,18 @@ framework-unabhängig. Routen werden in-process über `tower`s `oneshot` geteste
 -D warnings`, Build und Tests.
 
 JSON läuft über `serde`: Domänentypen in `src/models.rs`, getrennt von der
-HTTP-Schicht. `get_item` gibt `Json<Item>` zurück (Serialisierung), `create_item`
-nimmt `Json<CreateItem>` als Extractor (Deserialisierung, `201 Created`). Ein-
-und Ausgabe sind bewusst getrennte Typen (`CreateItem` ohne `id` — die ist
-serverkontrolliert). Ehrliche Grenze: `serde` prüft nur Struktur, nicht Semantik
-(leerer/überlanger `name` kommt durch) — inhaltliche Validierung ist eine spätere
-Schicht.
+HTTP-Schicht. Ein-und Ausgabe sind bewusst getrennte Typen (`CreateItem` ohne
+`id` — die ist serverkontrolliert). Ehrliche Grenze: `serde` prüft nur Struktur,
+nicht Semantik (leerer/überlanger `name` kommt durch) — inhaltliche Validierung
+ist eine spätere Schicht.
+
+Volles **CRUD** über einen In-Memory-Store: `AppState` mit
+`Arc<RwLock<HashMap<String, Item>>>` (`src/store.rs`), geteilt via axums
+`State`-Extractor. `POST` (`201`), `GET /{id}` (`200`/`404`), `GET` (Liste),
+`PUT /{id}` (`200`/`404`), `DELETE /{id}` (`204`/`404`). IDs sind server-vergebene
+UUIDs (v4, nicht durchzählbar). `std::sync::RwLock` reicht, weil der Guard nie
+über ein `.await` lebt. Noch im RAM (Neustart = Datenverlust); die Store-Methoden
+sind so geschnitten, dass sie in Phase C zu einem `Repository`-Trait werden.
 
 Der handgebaute Stack aus Lektion 14–17 (`serve`/`select!`/`JoinSet`/Registry,
 eigenes Request/Response-Parsing) wurde nach der axum-Migration entfernt — er
@@ -61,6 +67,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 17. Async mit `tokio` (`select!`, `pin!`, `JoinSet`, `tokio::time::timeout`, Registry mit `AbortHandle`, `ctrl_c`)
 18. HTTP-APIs mit `axum` (`Router`, Handler + `IntoResponse`, `Path`-Extractor, `axum::serve` + graceful shutdown, `tower_http::TimeoutLayer`, `oneshot`-Tests, CI-Härtung)
 19. `serde` + JSON (`Serialize`/`Deserialize`, `Json<T>` als Extractor und Response, Input-≠-Output-Typen, `201 Created`, Struktur- vs. Semantik-Validierung)
+20. In-Memory-Store + CRUD (`AppState`, `Arc<RwLock<HashMap>>`, `State`-Extractor, `uuid` v4, `200`/`201`/`204`/`404`, `std`- vs. `tokio`-`RwLock`)
 
 ## Zielbild
 
@@ -79,8 +86,6 @@ das Limit der vorigen.
 
 ### Phase B — REST / CRUD
 
-20. **CRUD mit In-Memory-Store** (`Arc<RwLock<HashMap>>`) — CRUD-Semantik und
-    shared State lernen, bevor eine DB dazukommt.
 21. **Ressourcen-Routing + Statuscodes** (`201 Created`, `204 No Content`,
     `409 Conflict`, `404`).
 22. **Input-Validierung als eigene Schicht** (🔒 nie ungeprüfte Daten in die

@@ -24,6 +24,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 17. [Async mit `tokio`: select, JoinSet, Timeout, Registry](17-async-tokio.md)
 18. [HTTP-APIs mit `axum`: Router, Handler, Layer, Migration](18-axum.md)
 19. [`serde` + JSON: Serialize/Deserialize, Json<T>, Input-≠-Output](19-serde-json.md)
+20. [In-Memory-Store: shared State + CRUD](20-in-memory-store.md)
 
 ## Arbeitsweise
 
