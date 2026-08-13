@@ -14,17 +14,21 @@ RUST_LOG=debug cargo run  # mit ausführlichem Logging
 
 ## Stand
 
-Ein laufender HTTP-Server über echtes TCP, jetzt **async mit `tokio`**. `serve`
-wartet per `tokio::select!` gleichzeitig auf neue Verbindungen und das
-Shutdown-Signal (kein Polling) und bedient jede Verbindung in einem eigenen
-Task. Graceful Shutdown: nach dem Signal keine neuen Verbindungen, laufende
-werden via `JoinSet::join_all` zu Ende bedient; ein per-Verbindung-Timeout
-(`tokio::time::timeout`) schützt gegen hängende Verbindungen (Slow-Loris). Eine
-Registry (`Arc<Mutex<HashMap<u64, AbortHandle>>>`) erlaubt, eine bestimmte
-Verbindung gezielt abzubrechen. Signal-Handler in `main` verdrahtet
-(`tokio::signal::ctrl_c`). per-Verbindung-Logging über einen `tracing`-Span.
-Ehrliche Grenze: `abort()` ist kooperativ (greift nur an `.await`-Punkten) — kein
-`kill -9` gegen blockierenden Code.
+Ein laufender HTTP-Server auf Basis von **`axum`**. `main` startet
+`axum::serve(listener, router())` mit `.with_graceful_shutdown(ctrl_c)`. Die
+Routen (`/api/health`, `/api/item/{id}`, `POST /api/item`, `/api/slow`) sind
+axum-Handler mit `IntoResponse`, Path-Extractor und Methoden-Routing; `404`/`405`
+liefert axum automatisch. Ein per-Request-Timeout hängt als
+`tower_http::TimeoutLayer` am Router (Slow-Loris-Abwehr, gibt `408`). Die
+Konfiguration (`ServerConfig`, Host/Port-Validierung, `ConfigError`) bleibt
+framework-unabhängig. Routen werden in-process über `tower`s `oneshot` getestet
+(kein TCP, kein Runtime-Deadlock). CI (GitHub Actions) prüft `fmt`, `clippy
+-D warnings`, Build und Tests.
+
+Der handgebaute Stack aus Lektion 14–17 (`serve`/`select!`/`JoinSet`/Registry,
+eigenes Request/Response-Parsing) wurde nach der axum-Migration entfernt — er
+bleibt über die Tags `lesson-14` … `lesson-17` und `docs/14`–`docs/17` erhalten.
+Er war die Grundlage, um zu *verstehen*, was `axum::serve` intern tut.
 
 ## Bearbeitete Lektionen
 
@@ -47,6 +51,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 15. Accept-Loop + Thread pro Verbindung (`serve`, `incoming()`, `thread::spawn`, `move`/`Send`)
 16. Graceful Shutdown + per-Verbindung-Logging (`Arc<AtomicBool>`, `JoinHandle`/`join`, `set_read_timeout`, `tracing`-Span)
 17. Async mit `tokio` (`select!`, `pin!`, `JoinSet`, `tokio::time::timeout`, Registry mit `AbortHandle`, `ctrl_c`)
+18. HTTP-APIs mit `axum` (`Router`, Handler + `IntoResponse`, `Path`-Extractor, `axum::serve` + graceful shutdown, `tower_http::TimeoutLayer`, `oneshot`-Tests, CI-Härtung)
 
 ## Zielbild
 
@@ -62,10 +67,6 @@ Korrektheit.
 Testbarkeit und Design zuerst, Netzwerk danach. Reiner Kern (Logik) getrennt
 von der I/O-Schale — das Ports-and-Adapters-Muster. Jede Stufe motiviert durch
 das Limit der vorigen.
-
-### Phase A — HTTP-Server von Grund auf
-
-18. **HTTP-APIs mit `axum`** — Router und Handler als echte Abstraktion.
 
 ### Phase B — REST / CRUD
 

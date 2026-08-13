@@ -22,6 +22,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 15. [Accept-Loop + Thread pro Verbindung](15-accept-loop.md)
 16. [Graceful Shutdown + per-Verbindung-Logging](16-graceful-shutdown.md)
 17. [Async mit `tokio`: select, JoinSet, Timeout, Registry](17-async-tokio.md)
+18. [HTTP-APIs mit `axum`: Router, Handler, Layer, Migration](18-axum.md)
 
 ## Arbeitsweise
 
