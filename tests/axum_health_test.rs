@@ -8,7 +8,7 @@ use rust_server_learning::app::router;
 
 #[tokio::test]
 async fn health_returns_200_ok() {
-    let app = router();
+    let app = router(std::time::Duration::from_secs(30));
 
     let response = app
         .oneshot(Request::get("/api/health").body(Body::empty()).unwrap())
@@ -23,7 +23,7 @@ async fn health_returns_200_ok() {
 
 #[tokio::test]
 async fn get_item_returns_id_as_json() {
-    let app = router();
+    let app = router(std::time::Duration::from_secs(30));
     let response = app
         .oneshot(Request::get("/api/item/42").body(Body::empty()).unwrap())
         .await
@@ -36,7 +36,7 @@ async fn get_item_returns_id_as_json() {
 
 #[tokio::test]
 async fn slow_returns_ok() {
-    let app = router();
+    let app = router(std::time::Duration::from_secs(30));
     let response = app
         .oneshot(Request::get("/api/slow").body(Body::empty()).unwrap())
         .await
@@ -48,7 +48,7 @@ async fn slow_returns_ok() {
 
 #[tokio::test]
 async fn create_item_json_returns_501() {
-    let app = router();
+    let app = router(std::time::Duration::from_secs(30));
     let response = app
         .oneshot(
             Request::post("/api/item")
@@ -63,10 +63,22 @@ async fn create_item_json_returns_501() {
 
 #[tokio::test]
 async fn create_item_without_json_returns_415() {
-    let app = router();
+    let app = router(std::time::Duration::from_secs(30));
     let response = app
         .oneshot(Request::post("/api/item").body(Body::empty()).unwrap())
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+}
+
+#[tokio::test]
+async fn slow_route_times_out_with_408() {
+    let app = router(std::time::Duration::from_millis(50));
+
+    let response = app
+        .oneshot(Request::get("/api/slow").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::REQUEST_TIMEOUT); // 408
 }

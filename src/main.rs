@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = tokio::signal::ctrl_c().await;
     };
 
-    axum::serve(listener, router())
+    axum::serve(listener, router(std::time::Duration::from_secs(50)))
         .with_graceful_shutdown(shutdown)
         .await?;
     Ok(())

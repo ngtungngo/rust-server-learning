@@ -3,6 +3,8 @@ use axum::extract::Path;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
+use std::time::Duration;
+use tower_http::timeout::TimeoutLayer;
 
 async fn health() -> &'static str {
     "ok"
@@ -39,10 +41,14 @@ async fn slow() -> impl IntoResponse {
     "slow ok"
 }
 
-pub fn router() -> Router {
+pub fn router(timeout: Duration) -> Router {
     Router::new()
         .route("/api/health", get(health))
         .route("/api/item/{id}", get(get_item))
         .route("/api/item", post(create_item))
         .route("/api/slow", get(slow))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            timeout,
+        ))
 }
