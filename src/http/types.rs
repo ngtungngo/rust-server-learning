@@ -132,5 +132,4 @@ impl std::str::FromStr for Method {
             _ => Err(()),
         }
     }
-
 }

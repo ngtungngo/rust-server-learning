@@ -1,5 +1,5 @@
+use rust_server_learning::http::{ContentType, Method, Request, StatusCode, handle};
 use std::time::{Duration, Instant};
-use rust_server_learning::http::{Method, Request, StatusCode, ContentType, handle};
 
 #[test]
 fn health_endpoint_returns_ok() {
@@ -30,9 +30,12 @@ fn get_item_returns_json_with_id() {
 
 #[test]
 fn post_item_with_wrong_content_type_returns_415() {
-    let request = Request::new(Method::Post, "/api/item".into())
-        .with_content_type(ContentType::TextPlain);
-    assert_eq!(handle(&request).status_code, StatusCode::UnsupportedMediaType);
+    let request =
+        Request::new(Method::Post, "/api/item".into()).with_content_type(ContentType::TextPlain);
+    assert_eq!(
+        handle(&request).status_code,
+        StatusCode::UnsupportedMediaType
+    );
 }
 
 #[test]

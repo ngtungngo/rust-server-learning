@@ -1,7 +1,7 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use http_body_util::BodyExt;   // für .collect()
-use tower::ServiceExt;         // für .oneshot()
+use http_body_util::BodyExt; // für .collect()
+use tower::ServiceExt; // für .oneshot()
 
 // die Router-Fabrik, die wir gleich in src/ bauen
 use rust_server_learning::app::router;
@@ -46,7 +46,6 @@ async fn slow_returns_ok() {
     assert_eq!(&body[..], b"slow ok");
 }
 
-
 #[tokio::test]
 async fn create_item_json_returns_501() {
     let app = router();
@@ -54,8 +53,11 @@ async fn create_item_json_returns_501() {
         .oneshot(
             Request::post("/api/item")
                 .header("content-type", "application/json")
-                .body(Body::empty()).unwrap(),
-        ).await.unwrap();
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
 }
 
@@ -64,6 +66,7 @@ async fn create_item_without_json_returns_415() {
     let app = router();
     let response = app
         .oneshot(Request::post("/api/item").body(Body::empty()).unwrap())
-        .await.unwrap();
+        .await
+        .unwrap();
     assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 }

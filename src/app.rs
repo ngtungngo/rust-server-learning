@@ -1,8 +1,8 @@
 use axum::Router;
-use axum::routing::{get, post};
 use axum::extract::Path;
-use axum::http::{header, StatusCode, HeaderMap};
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
+use axum::routing::{get, post};
 
 async fn health() -> &'static str {
     "ok"
@@ -26,7 +26,11 @@ async fn create_item(headers: HeaderMap) -> impl IntoResponse {
     if is_json {
         (StatusCode::NOT_IMPLEMENTED, "not implemented yet").into_response()
     } else {
-        (StatusCode::UNSUPPORTED_MEDIA_TYPE, "expected application/json").into_response()
+        (
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "expected application/json",
+        )
+            .into_response()
     }
 }
 

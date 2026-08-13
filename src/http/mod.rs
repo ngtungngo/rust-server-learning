@@ -1,5 +1,5 @@
-mod types;
 mod handle;
+mod types;
 
-pub use types::*;
 pub use handle::handle;
+pub use types::*;

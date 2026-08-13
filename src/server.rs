@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::http::{Method, Request, Response, StatusCode, handle};
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -103,7 +103,6 @@ async fn handle_connection(mut stream: tokio::net::TcpStream) -> std::io::Result
     stream.write_all(bytes.as_bytes()).await?;
     Ok(())
 }
-
 
 async fn handle_with_timeout(stream: tokio::net::TcpStream, timeout: Duration) {
     match tokio::time::timeout(timeout, handle_connection(stream)).await {
