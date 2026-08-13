@@ -1,8 +1,9 @@
-use axum::Router;
+use crate::models::Item;
 use axum::extract::Path;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
+use axum::{Json, Router};
 use std::time::Duration;
 use tower_http::timeout::TimeoutLayer;
 
@@ -11,12 +12,7 @@ async fn health() -> &'static str {
 }
 
 async fn get_item(Path(id): Path<String>) -> impl IntoResponse {
-    let body = format!(r#"{{"id":"{id}"}}"#);
-    (
-        StatusCode::OK,
-        [(header::CONTENT_TYPE, "application/json")],
-        body,
-    )
+    Json(Item { id })
 }
 
 async fn create_item(headers: HeaderMap) -> impl IntoResponse {
