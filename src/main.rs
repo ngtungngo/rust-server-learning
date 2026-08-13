@@ -1,5 +1,6 @@
 use rust_server_learning::ServerConfig;
 use rust_server_learning::app::router;
+use rust_server_learning::store::AppState;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,8 +19,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = tokio::signal::ctrl_c().await;
     };
 
-    axum::serve(listener, router(std::time::Duration::from_secs(50)))
-        .with_graceful_shutdown(shutdown)
-        .await?;
+    axum::serve(
+        listener,
+        router(std::time::Duration::from_secs(50), AppState::new()),
+    )
+    .with_graceful_shutdown(shutdown)
+    .await?;
     Ok(())
 }
