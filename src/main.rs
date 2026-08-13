@@ -1,8 +1,5 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use rust_server_learning::ServerConfig;
-use rust_server_learning::server::serve;
+use rust_server_learning::app::router;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,15 +11,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let config = ServerConfig::new("localhost", "8080")?;
-    let listener = tokio::net::TcpListener::bind(config.bind_address()).await?; // Socket öffnen
+    let listener = tokio::net::TcpListener::bind(config.bind_address()).await?;
     tracing::info!("Server will listen on {}", config.bind_address());
+
     let shutdown = async {
-        let _ = tokio::signal::ctrl_c().await; // warte auf Strg-C; Fehler ignorieren
+        let _ = tokio::signal::ctrl_c().await;
     };
 
-    let registry: rust_server_learning::server::Registry =
-        Arc::new(Mutex::new(HashMap::new()));
-
-    serve(&listener, shutdown, Duration::from_secs(30), registry).await?;
+    axum::serve(listener, router())
+        .with_graceful_shutdown(shutdown)
+        .await?;
     Ok(())
 }
