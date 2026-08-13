@@ -102,3 +102,88 @@ async fn get_unknown_item_returns_404() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn list_returns_all_items() {
+    let state = AppState::new();
+    state.insert("a".to_string()); // direkt über den Store befüllen — kürzer als 2x POST
+    state.insert("b".to_string());
+
+    let response = router(Duration::from_secs(30), state)
+        .oneshot(Request::get("/api/item").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let items: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(items.len(), 2);
+    let names: Vec<&str> = items.iter().map(|i| i["name"].as_str().unwrap()).collect();
+    assert!(names.contains(&"a") && names.contains(&"b"));
+}
+
+#[tokio::test]
+async fn delete_existing_item_returns_204() {
+    let state = AppState::new();
+    let item = state.insert("widget".to_string()); // direkt befüllen, ID merken
+
+    let response = router(Duration::from_secs(30), state.clone())
+        .oneshot(
+            Request::delete(format!("/api/item/{}", item.id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+    // wirklich weg? GET → 404 (beweist, dass delete den Store verändert hat)
+    assert!(state.get(&item.id).is_none());
+}
+
+#[tokio::test]
+async fn delete_unknown_item_returns_404() {
+    let state = AppState::new();
+    let response = router(Duration::from_secs(30), state)
+        .oneshot(
+            Request::delete("/api/item/nope")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn update_existing_item_returns_404() {
+    let state = AppState::new();
+    let item = state.insert("old".to_string());
+
+    let response = router(Duration::from_secs(30), state.clone())
+        .oneshot(
+            Request::put(format!("/api/item/{}", item.id))
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name":"new"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(state.get(&item.id).unwrap().name, "new"); // Store wirklich geändert?
+}
+
+#[tokio::test]
+async fn update_unknown_item_returns_404() {
+    let state = AppState::new();
+    let response = router(Duration::from_secs(30), state)
+        .oneshot(
+            Request::put("/api/item/nope")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name":"x"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}

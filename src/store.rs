@@ -35,4 +35,19 @@ impl AppState {
     pub fn get(&self, id: &str) -> Option<Item> {
         self.items.read().unwrap().get(id).cloned()
     }
+
+    pub fn list(&self) -> Vec<Item> {
+        self.items.read().unwrap().values().cloned().collect()
+    }
+
+    pub fn delete(&self, id: &str) -> bool {
+        self.items.write().unwrap().remove(id).is_some() // true wenn was entfernt wurde
+    }
+
+    pub fn update(&self, id: &str, name: String) -> Option<Item> {
+        let mut items = self.items.write().unwrap();
+        let item = items.get_mut(id)?; // None → früh raus → Handler gibt 404
+        item.name = name;
+        Some(item.clone())
+    }
 }
