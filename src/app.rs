@@ -1,6 +1,6 @@
-use crate::models::Item;
+use crate::models::{CreateItem, Item};
 use axum::extract::Path;
-use axum::http::{HeaderMap, StatusCode, header};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -15,21 +15,9 @@ async fn get_item(Path(id): Path<String>) -> impl IntoResponse {
     Json(Item { id })
 }
 
-async fn create_item(headers: HeaderMap) -> impl IntoResponse {
-    let is_json = headers
-        .get(header::CONTENT_TYPE)
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|v| v.starts_with("application/json"));
-
-    if is_json {
-        (StatusCode::NOT_IMPLEMENTED, "not implemented yet").into_response()
-    } else {
-        (
-            StatusCode::UNSUPPORTED_MEDIA_TYPE,
-            "expected application/json",
-        )
-            .into_response()
-    }
+async fn create_item(Json(input): Json<CreateItem>) -> impl IntoResponse {
+    let item = Item { id: input.name }; // placeholder: real id assignment arrives with the store (L20)
+    (StatusCode::CREATED, Json(item))
 }
 
 async fn slow() -> impl IntoResponse {

@@ -1,6 +1,7 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt; // für .collect()
+use std::time::Duration;
 use tower::ServiceExt; // für .oneshot()
 
 // die Router-Fabrik, die wir gleich in src/ bauen
@@ -47,18 +48,20 @@ async fn slow_returns_ok() {
 }
 
 #[tokio::test]
-async fn create_item_json_returns_501() {
-    let app = router(std::time::Duration::from_secs(30));
+async fn create_item_returns_201_with_json_body() {
+    let app = router(Duration::from_secs(30));
     let response = app
         .oneshot(
             Request::post("/api/item")
                 .header("content-type", "application/json")
-                .body(Body::empty())
+                .body(Body::from(r#"{"name":"widget"}"#))
                 .unwrap(),
         )
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    assert_eq!(&body[..], br#"{"id":"widget"}"#);
 }
 
 #[tokio::test]
