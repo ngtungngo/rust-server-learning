@@ -25,6 +25,14 @@ framework-unabhängig. Routen werden in-process über `tower`s `oneshot` geteste
 (kein TCP, kein Runtime-Deadlock). CI (GitHub Actions) prüft `fmt`, `clippy
 -D warnings`, Build und Tests.
 
+JSON läuft über `serde`: Domänentypen in `src/models.rs`, getrennt von der
+HTTP-Schicht. `get_item` gibt `Json<Item>` zurück (Serialisierung), `create_item`
+nimmt `Json<CreateItem>` als Extractor (Deserialisierung, `201 Created`). Ein-
+und Ausgabe sind bewusst getrennte Typen (`CreateItem` ohne `id` — die ist
+serverkontrolliert). Ehrliche Grenze: `serde` prüft nur Struktur, nicht Semantik
+(leerer/überlanger `name` kommt durch) — inhaltliche Validierung ist eine spätere
+Schicht.
+
 Der handgebaute Stack aus Lektion 14–17 (`serve`/`select!`/`JoinSet`/Registry,
 eigenes Request/Response-Parsing) wurde nach der axum-Migration entfernt — er
 bleibt über die Tags `lesson-14` … `lesson-17` und `docs/14`–`docs/17` erhalten.
@@ -52,6 +60,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 16. Graceful Shutdown + per-Verbindung-Logging (`Arc<AtomicBool>`, `JoinHandle`/`join`, `set_read_timeout`, `tracing`-Span)
 17. Async mit `tokio` (`select!`, `pin!`, `JoinSet`, `tokio::time::timeout`, Registry mit `AbortHandle`, `ctrl_c`)
 18. HTTP-APIs mit `axum` (`Router`, Handler + `IntoResponse`, `Path`-Extractor, `axum::serve` + graceful shutdown, `tower_http::TimeoutLayer`, `oneshot`-Tests, CI-Härtung)
+19. `serde` + JSON (`Serialize`/`Deserialize`, `Json<T>` als Extractor und Response, Input-≠-Output-Typen, `201 Created`, Struktur- vs. Semantik-Validierung)
 
 ## Zielbild
 
@@ -70,7 +79,6 @@ das Limit der vorigen.
 
 ### Phase B — REST / CRUD
 
-19. **`serde` + JSON** — Request-Body deserialisieren, Response serialisieren.
 20. **CRUD mit In-Memory-Store** (`Arc<RwLock<HashMap>>`) — CRUD-Semantik und
     shared State lernen, bevor eine DB dazukommt.
 21. **Ressourcen-Routing + Statuscodes** (`201 Created`, `204 No Content`,
