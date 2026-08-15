@@ -39,6 +39,12 @@ UUIDs (v4, nicht durchzählbar). `std::sync::RwLock` reicht, weil der Guard nie
 über ein `.await` lebt. Noch im RAM (Neustart = Datenverlust); die Store-Methoden
 sind so geschnitten, dass sie in Phase C zu einem `Repository`-Trait werden.
 
+Eine erste **fachliche Regel**: `name` ist eindeutig. `insert` gibt
+`Result<Item, StoreError>` (getippter Fehler via `thiserror`); ein doppelter Name
+wird im Handler auf `409 Conflict` gemappt. Prüfung und Insert teilen sich einen
+`write`-Guard (kein TOCTOU-Race zwischen zwei parallelen Creates). Das ist die
+Blaupause für das DB→HTTP-Fehler-Mapping in Phase C.
+
 Der handgebaute Stack aus Lektion 14–17 (`serve`/`select!`/`JoinSet`/Registry,
 eigenes Request/Response-Parsing) wurde nach der axum-Migration entfernt — er
 bleibt über die Tags `lesson-14` … `lesson-17` und `docs/14`–`docs/17` erhalten.
@@ -68,6 +74,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 18. HTTP-APIs mit `axum` (`Router`, Handler + `IntoResponse`, `Path`-Extractor, `axum::serve` + graceful shutdown, `tower_http::TimeoutLayer`, `oneshot`-Tests, CI-Härtung)
 19. `serde` + JSON (`Serialize`/`Deserialize`, `Json<T>` als Extractor und Response, Input-≠-Output-Typen, `201 Created`, Struktur- vs. Semantik-Validierung)
 20. In-Memory-Store + CRUD (`AppState`, `Arc<RwLock<HashMap>>`, `State`-Extractor, `uuid` v4, `200`/`201`/`204`/`404`, `std`- vs. `tokio`-`RwLock`)
+21. `409 Conflict` + erster fachlicher Fehler (Eindeutigkeit von `name`, `insert -> Result<Item, StoreError>`, `thiserror`, Fehler→HTTP-Mapping, TOCTOU unter einem Guard)
 
 ## Zielbild
 
@@ -86,8 +93,6 @@ das Limit der vorigen.
 
 ### Phase B — REST / CRUD
 
-21. **Ressourcen-Routing + Statuscodes** (`201 Created`, `204 No Content`,
-    `409 Conflict`, `404`).
 22. **Input-Validierung als eigene Schicht** (🔒 nie ungeprüfte Daten in die
     Domäne).
 
