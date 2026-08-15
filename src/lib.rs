@@ -2,6 +2,7 @@ use thiserror::Error;
 pub mod app;
 pub mod models;
 pub mod store;
+pub mod validation;
 
 pub fn parse_port(input: &str) -> Result<u16, ConfigError> {
     let port: u16 = input.parse().map_err(|e| {
