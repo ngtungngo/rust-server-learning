@@ -24,8 +24,10 @@ async fn create_item(
     State(state): State<AppState>,
     Json(input): Json<CreateItem>,
 ) -> impl IntoResponse {
-    let item = state.insert(input.name);
-    (StatusCode::CREATED, Json(item))
+    match state.insert(input.name) {
+        Ok(item) => (StatusCode::CREATED, Json(item)).into_response(),
+        Err(err) => (StatusCode::CONFLICT, err.to_string()).into_response(),
+    }
 }
 
 async fn list_items(State(state): State<AppState>) -> Json<Vec<Item>> {

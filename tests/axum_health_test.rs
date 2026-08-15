@@ -90,6 +90,38 @@ async fn create_then_get_roundtrip() {
 }
 
 #[tokio::test]
+async fn create_duplicate_name_returns_409() {
+    let state = AppState::new();
+
+    // erster POST mit "widget" → 201
+    let first = router(Duration::from_secs(30), state.clone())
+        .oneshot(
+            Request::post("/api/item")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name":"widget"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(first.status(), StatusCode::CREATED);
+
+    // zweiter POST mit demselben Namen → 409 Conflict (Eindeutigkeitsregel)
+    let second = router(Duration::from_secs(30), state.clone())
+        .oneshot(
+            Request::post("/api/item")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name":"widget"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(second.status(), StatusCode::CONFLICT);
+
+    // der Store hat NICHT doppelt angelegt
+    assert_eq!(state.list().len(), 1);
+}
+
+#[tokio::test]
 async fn get_unknown_item_returns_404() {
     let state = AppState::new();
     let response = router(Duration::from_secs(30), state)
@@ -106,8 +138,8 @@ async fn get_unknown_item_returns_404() {
 #[tokio::test]
 async fn list_returns_all_items() {
     let state = AppState::new();
-    state.insert("a".to_string()); // direkt über den Store befüllen — kürzer als 2x POST
-    state.insert("b".to_string());
+    state.insert("a".to_string()).unwrap(); // direkt über den Store befüllen — kürzer als 2x POST
+    state.insert("b".to_string()).unwrap();
 
     let response = router(Duration::from_secs(30), state)
         .oneshot(Request::get("/api/item").body(Body::empty()).unwrap())
@@ -125,7 +157,7 @@ async fn list_returns_all_items() {
 #[tokio::test]
 async fn delete_existing_item_returns_204() {
     let state = AppState::new();
-    let item = state.insert("widget".to_string()); // direkt befüllen, ID merken
+    let item = state.insert("widget".to_string()).unwrap(); // direkt befüllen, ID merken
 
     let response = router(Duration::from_secs(30), state.clone())
         .oneshot(
@@ -158,7 +190,7 @@ async fn delete_unknown_item_returns_404() {
 #[tokio::test]
 async fn update_existing_item_returns_404() {
     let state = AppState::new();
-    let item = state.insert("old".to_string());
+    let item = state.insert("old".to_string()).unwrap();
 
     let response = router(Duration::from_secs(30), state.clone())
         .oneshot(

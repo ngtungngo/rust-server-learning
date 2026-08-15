@@ -2,7 +2,14 @@ use crate::models::Item;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+use thiserror::Error;
 use uuid::Uuid;
+
+#[derive(Debug, PartialEq, Error)]
+pub enum StoreError {
+    #[error("an item with name '{0}' already exists")]
+    DuplicateName(String),
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -22,14 +29,18 @@ impl AppState {
         Self::default()
     }
 
-    pub fn insert(&self, name: String) -> Item {
+    pub fn insert(&self, name: String) -> Result<Item, StoreError> {
+        let mut items = self.items.write().unwrap();
+        if items.values().any(|item| item.name == name) {
+            return Err(StoreError::DuplicateName(name)); // Eindeutigkeitsregel an der Grenze
+        }
         let id = Uuid::new_v4().to_string(); // server-vergebene, nicht erratbare ID
         let item = Item {
             id: id.clone(),
             name,
         };
-        self.items.write().unwrap().insert(id, item.clone()); // lock → insert → guard fällt
-        item
+        items.insert(id, item.clone());
+        Ok(item)
     }
 
     pub fn get(&self, id: &str) -> Option<Item> {
