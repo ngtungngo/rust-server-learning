@@ -26,6 +26,7 @@ beschreibt das Ziel, den wichtigsten Rust-Gedanken und die zugehörigen Dateien.
 19. [`serde` + JSON: Serialize/Deserialize, Json<T>, Input-≠-Output](19-serde-json.md)
 20. [In-Memory-Store: shared State + CRUD](20-in-memory-store.md)
 21. [`409 Conflict` + erster fachlicher Fehler](21-conflict-status.md)
+22. [Input-Validierung: "parse, don't validate"](22-input-validation.md)
 
 ## Arbeitsweise
 

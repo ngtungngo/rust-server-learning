@@ -45,6 +45,14 @@ wird im Handler auf `409 Conflict` gemappt. Prüfung und Insert teilen sich eine
 `write`-Guard (kein TOCTOU-Race zwischen zwei parallelen Creates). Das ist die
 Blaupause für das DB→HTTP-Fehler-Mapping in Phase C.
 
+**Input-Validierung** an der HTTP-Grenze nach dem Muster „parse, don't validate":
+Ein Typ `ItemName` (`src/validation.rs`) kann nur über `parse` entstehen und ist
+dann per Typsystem garantiert gültig (nicht leer nach `trim`, max 100 Bytes).
+`create_item`/`update_item` parsen zuerst — ungültige Eingabe → `400`, *bevor* sie
+den Store erreicht (`400` vor `409`). 🔒 Validierung ≠ Injection-Abwehr (die sitzt
+an der Senke, kommt mit `sqlx`); das Längenlimit ist Ressourcenschutz gegen
+Speicher-DoS.
+
 Der handgebaute Stack aus Lektion 14–17 (`serve`/`select!`/`JoinSet`/Registry,
 eigenes Request/Response-Parsing) wurde nach der axum-Migration entfernt — er
 bleibt über die Tags `lesson-14` … `lesson-17` und `docs/14`–`docs/17` erhalten.
@@ -75,6 +83,7 @@ Details je Lektion in [`docs/`](docs/README.md).
 19. `serde` + JSON (`Serialize`/`Deserialize`, `Json<T>` als Extractor und Response, Input-≠-Output-Typen, `201 Created`, Struktur- vs. Semantik-Validierung)
 20. In-Memory-Store + CRUD (`AppState`, `Arc<RwLock<HashMap>>`, `State`-Extractor, `uuid` v4, `200`/`201`/`204`/`404`, `std`- vs. `tokio`-`RwLock`)
 21. `409 Conflict` + erster fachlicher Fehler (Eindeutigkeit von `name`, `insert -> Result<Item, StoreError>`, `thiserror`, Fehler→HTTP-Mapping, TOCTOU unter einem Guard)
+22. Input-Validierung „parse, don't validate" (Typ `ItemName`, privates Feld + `parse`-Konstruktor, `ValidationError`, `400` vor `409`, Validierung ≠ Injection-Abwehr, Byte-Längenlimit gegen DoS)
 
 ## Zielbild
 
@@ -90,11 +99,6 @@ Korrektheit.
 Testbarkeit und Design zuerst, Netzwerk danach. Reiner Kern (Logik) getrennt
 von der I/O-Schale — das Ports-and-Adapters-Muster. Jede Stufe motiviert durch
 das Limit der vorigen.
-
-### Phase B — REST / CRUD
-
-22. **Input-Validierung als eigene Schicht** (🔒 nie ungeprüfte Daten in die
-    Domäne).
 
 ### Phase C — Persistenz
 
