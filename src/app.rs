@@ -8,6 +8,7 @@ use std::time::Duration;
 use tower_http::timeout::TimeoutLayer;
 
 use crate::store::AppState;
+use crate::validation::ItemName;
 
 async fn health() -> &'static str {
     "ok"
@@ -24,7 +25,11 @@ async fn create_item(
     State(state): State<AppState>,
     Json(input): Json<CreateItem>,
 ) -> impl IntoResponse {
-    match state.insert(input.name) {
+    let name = match ItemName::parse(input.name) {
+        Ok(name) => name,
+        Err(err) => return (StatusCode::BAD_REQUEST, err.to_string()).into_response(),
+    };
+    match state.insert(name.into_inner()) {
         Ok(item) => (StatusCode::CREATED, Json(item)).into_response(),
         Err(err) => (StatusCode::CONFLICT, err.to_string()).into_response(),
     }
@@ -47,7 +52,11 @@ async fn update_item(
     Path(id): Path<String>,
     Json(input): Json<CreateItem>,
 ) -> impl IntoResponse {
-    match state.update(&id, input.name) {
+    let name = match ItemName::parse(input.name) {
+        Ok(name) => name,
+        Err(err) => return (StatusCode::BAD_REQUEST, err.to_string()).into_response(),
+    };
+    match state.update(&id, name.into_inner()) {
         Some(item) => (StatusCode::OK, Json(item)).into_response(),
         None => StatusCode::NOT_FOUND.into_response(),
     }

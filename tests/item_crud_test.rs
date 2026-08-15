@@ -138,7 +138,7 @@ async fn delete_unknown_item_returns_404() {
 }
 
 #[tokio::test]
-async fn update_existing_item_returns_404() {
+async fn update_existing_item_returns_200() {
     let state = AppState::new();
     let item = state.insert("old".to_string()).unwrap();
 
@@ -168,4 +168,38 @@ async fn update_unknown_item_returns_404() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn create_empty_name_returns_400() {
+    let state = AppState::new();
+    let response = router(Duration::from_secs(30), state.clone())
+        .oneshot(
+            Request::post("/api/item")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name": ""}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(state.list().len(), 0);
+}
+
+#[tokio::test]
+async fn update_empty_name_returns_400() {
+    let state = AppState::new();
+    let item = state.insert("old".to_string()).unwrap();
+
+    let response = router(Duration::from_secs(30), state.clone())
+        .oneshot(
+            Request::put(format!("/api/item/{}", item.id))
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name":""}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(state.get(&item.id).unwrap().name, "old");
 }
